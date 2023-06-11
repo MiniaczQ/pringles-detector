@@ -19,10 +19,12 @@ phi = (1 + math.sqrt(5)) / 2
 C_CLASS = lambda id: np.array([id * phi % math.tau / math.tau, 1, 0.8])
 
 
-def dbg_show_ccl(labels: ArrayLike) -> ArrayLike:
+def dbg_show_ccl(labels: ArrayLike, unique: ArrayLike | None = None) -> ArrayLike:
+    if unique is None:
+        unique = np.unique(labels)[1:]
     width, height = labels.shape
     out_image = np.zeros((width, height, 3))
-    for i, label in enumerate(np.unique(labels)[1:]):
+    for i, label in enumerate(unique):
         out_image[labels == label] = C_CLASS(i)
     out_image = dbg_hsv_to_bgr(out_image)
     return out_image
