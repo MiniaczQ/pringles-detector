@@ -35,7 +35,7 @@ def detect(image: ArrayLike) -> ArrayLike:
     hair_mask = process_hair(hsv_image)
     text_mask = process_text(hsv_image)
 
-    return dbg_show_ccl(ccl(hair_mask)) * 255
+    return dbg_show_ccl(ccl(hair_mask))
 
     mask = face_mask  # face_mask | hair_mask | text_mask
 

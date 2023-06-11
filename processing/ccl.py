@@ -37,10 +37,12 @@ def ccl(image: ArrayLike) -> ArrayLike:
             if padded_image[x][y - 1]:
                 neighbours.append(labels[x][y - 1])
             labels[x][y] = min(neighbours)
-            for label in neighbours:
-                # Union (besides the parent, order does not matter)
-                for label2 in neighbours:
-                    linked[label].update(linked[label2])
+            if padded_image[x - 1][y] & padded_image[x][y - 1]:
+                l1 = labels[x - 1][y]
+                l2 = labels[x][y - 1]
+                linked[l1].update(linked[l2])
+                for label in linked[l1]:
+                    linked[label] = linked[l1]
         else:
             linked.append(set([next_label]))
             labels[x][y] = next_label
