@@ -8,7 +8,7 @@ from processing.ccl import (
     label_centroids,
     label_matches,
 )
-from processing.debug import dbg_show_ccl
+from processing.debug import dbg_show_ccl, dbg_show_mask
 from processing.morph import erode, dilate, repopulate, populate
 from processing.compare import similar_sizes, relative_positions
 
@@ -38,7 +38,7 @@ def detect(image: ArrayLike) -> ArrayLike:
     hsv_image = bgr_to_hsv(image.astype(np.float32) / 255)
 
     face_mask = process_face(hsv_image)
-    hair_mask = process_hair(hsv_image)
+    # hair_mask = process_hair(hsv_image)
     text_mask = process_text(hsv_image)
 
     face_mask_labels = ccl(face_mask)
@@ -47,7 +47,6 @@ def detect(image: ArrayLike) -> ArrayLike:
     face_mask_centroids = label_centroids(
         face_mask_labels, face_mask_uniques, face_mask_sizes
     )
-    # return dbg_show_ccl(face_mask_labels) * 255
 
     text_mask = dilate(erode(text_mask, 2), 4)
     text_mask_labels = ccl(text_mask)
@@ -56,17 +55,20 @@ def detect(image: ArrayLike) -> ArrayLike:
     text_mask_centroids = label_centroids(
         text_mask_labels, text_mask_uniques, text_mask_sizes
     )
-    # return dbg_show_ccl(text_mask_labels, text_mask_uniques[text_mask_sizes > 200]) * 255
 
     size_label_mask = similar_sizes(face_mask_sizes, text_mask_sizes, (0.8, 2))
     position_label_mask = relative_positions(
-        text_mask_sizes, text_mask_centroids, face_mask_centroids, ((-1, -4), (1, 0))
+        text_mask_sizes,
+        text_mask_centroids,
+        face_mask_centroids,
+        ((-1.5, -0.2), (-1, 0.2)),
     )
     label_mask = size_label_mask & position_label_mask
     matches = label_matches(label_mask)
-    matches_mask = np.zeros_like(text_mask)
-    for i, (text_label, face_label) in enumerate(matches):
-        print(i, text_label, face_label)
+    matches_mask = np.zeros_like(text_mask, dtype=np.uint32)
+    for i, (text_label_idx, face_label_idx) in enumerate(matches):
+        text_label = text_mask_uniques[text_label_idx]
+        face_label = face_mask_uniques[face_label_idx]
         matches_mask[text_mask_labels == text_label] = i + 1
         matches_mask[face_mask_labels == face_label] = i + 1
 

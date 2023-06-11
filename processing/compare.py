@@ -22,7 +22,6 @@ def relative_positions(
     centroid_count = centroids.shape[0]
     other_centroid_count = other_centroids.shape[0]
     sqrt_sizes = np.sqrt(sizes)
-    print(sqrt_sizes)
     minmax = np.repeat(
         np.repeat(sqrt_sizes[:, None, None], 2, axis=1), 2, axis=2
     ) * np.array(tolerances)

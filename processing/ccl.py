@@ -81,7 +81,7 @@ def label_centroids(
     grid = coordinate_grid(labels.shape)
     for i, label in enumerate(label_uniques):
         masked = grid[labels == label]
-        centroids[i] = sum(masked) / label_sizes[i]
+        centroids[i] = np.sum(masked, axis=0) / label_sizes[i]
     return centroids
 
 

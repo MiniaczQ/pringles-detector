@@ -28,3 +28,9 @@ def dbg_show_ccl(labels: ArrayLike, unique: ArrayLike | None = None) -> ArrayLik
         out_image[labels == label] = C_CLASS(i)
     out_image = dbg_hsv_to_bgr(out_image)
     return out_image
+
+
+def dbg_show_mask(mask: ArrayLike) -> ArrayLike:
+    image = np.zeros((mask.shape[0], mask.shape[1], 3))
+    image[mask] = 1
+    return image
