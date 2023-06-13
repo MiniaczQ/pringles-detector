@@ -3,6 +3,32 @@ from numpy.typing import ArrayLike
 from typing import Tuple
 
 
+def within(aabb1: ArrayLike, aabb2: ArrayLike) -> bool:
+    """
+    Whether AABB1 is contained within AABB2.
+    """
+    return (
+        (aabb2[0] <= aabb1[0])
+        & (aabb2[1] <= aabb1[1])
+        & (aabb1[2] <= aabb2[2])
+        & (aabb1[3] <= aabb2[3])
+    )
+
+
+def remove_overlaps(aabbs: ArrayLike) -> ArrayLike:
+    """
+    Removes smaller AABBs when there are multiple within one another.
+    """
+    valid = set(range(aabbs.shape[0]))
+    for aabb_big in aabbs:
+        for i, aabb_small in enumerate(aabbs):
+            if not (aabb_big == aabb_small).all():
+                if i in valid:
+                    if within(aabb_small, aabb_big):
+                        valid.remove(i)
+    return aabbs[list(valid), :]
+
+
 def draw_aabbs(image: ArrayLike, aabbs: ArrayLike, color: ArrayLike) -> ArrayLike:
     """
     Draws many AABBs onto an image.

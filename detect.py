@@ -13,7 +13,7 @@ from processing.labels import (
 from processing.debug import dbg_repr_ccl, dbg_repr_mask
 from processing.morph import erode, dilate, repopulate, populate
 from processing.compare import similar_sizes, relative_positions
-from processing.aabb import draw_aabbs
+from processing.aabb import draw_aabbs, remove_overlaps
 
 
 def detect(image: ArrayLike) -> ArrayLike:
@@ -25,10 +25,10 @@ def detect(image: ArrayLike) -> ArrayLike:
     # BGR to HSV
     hsv_image = bgr_to_hsv(image.astype(np.float32) / 255)
 
-    # Extract face & text masks
+    # Extract face, text & contour masks
     face_mask = (hsv_image[:, :, 1] < 0.15) & (hsv_image[:, :, 2] > 0.5)
     text_mask = (hsv_image[:, :, 0] < 0.2) & (hsv_image[:, :, 0] > 0.095)
-    hair_mask = hsv_image[:, :, 2] < 0.4
+    contour_mask = hsv_image[:, :, 2] < 0.4
 
     # Erode and dilate text mask
     text_mask = dilate(erode(text_mask, 2), 4)
@@ -64,40 +64,35 @@ def detect(image: ArrayLike) -> ArrayLike:
     textface_sizes = label_sizes(textface_labels, textface_uniques)
     textface_cogs = label_cogs(textface_labels, textface_uniques, textface_sizes)
 
-    # CCL, Sizes and CoGs for hair mask
-    hair_labels = ccl(hair_mask)
-    hair_uniques = label_uniques(hair_labels)
-    hair_sizes = label_sizes(hair_labels, hair_uniques)
-    hair_cogs = label_cogs(hair_labels, hair_uniques, hair_sizes)
+    # CCL, Sizes and CoGs for contour mask
+    contour_labels = ccl(contour_mask)
+    contour_uniques = label_uniques(contour_labels)
+    contour_sizes = label_sizes(contour_labels, contour_uniques)
+    contour_cogs = label_cogs(contour_labels, contour_uniques, contour_sizes)
 
-    # Compare relative positions between textface and hair labels
-    logo_size_mask = similar_sizes(textface_sizes, hair_sizes, (0.075, 2.0))
+    # Compare relative positions between textface and contour labels
+    logo_size_mask = similar_sizes(textface_sizes, contour_sizes, (0.075, 2.0))
     logo_pos_mask = relative_positions(
         textface_sizes,
         textface_cogs,
-        hair_cogs,
+        contour_cogs,
         ((-0.5, -0.5), (0.2, 0.5)),
     )
     logo_mask = logo_size_mask & logo_pos_mask
     logo_pairs = label_matches(logo_mask)
 
-    # Merge matching textface & hair labels into a new logo label
+    # Merge matching textface & contour labels into a new logo label
     logo_labels = merge_labels(
-        textface_labels, textface_uniques, hair_labels, hair_uniques, logo_pairs
+        textface_labels, textface_uniques, contour_labels, contour_uniques, logo_pairs
     )
     logo_uniques = label_uniques(logo_labels)
 
     # Convert labels to AABBs and draw them on the original image
     aabbs = labels_to_aabbs(logo_labels, logo_uniques)
+    aabbs = remove_overlaps(aabbs)
     image = draw_aabbs(image, aabbs, np.array([0, 255, 0]))
 
-    return [
-        image,
-        dbg_repr_ccl(logo_labels) * 255
-        # dbg_repr_mask(face_mask) * 255,
-        # dbg_repr_mask(text_mask) * 255,
-        # dbg_repr_mask(hair_mask) * 255,
-    ]
+    return [image]
 
 
 if __name__ == "__main__":
