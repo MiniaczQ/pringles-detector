@@ -3,6 +3,9 @@ from numpy.typing import ArrayLike
 
 
 def erode(mask: ArrayLike, k=1) -> ArrayLike:
+    """
+    Starting from a blank mask, set entry to True if it has all neighbours (in the provided mask) in 2K+1 surrounding square.
+    """
     padded_mask = np.pad(mask, [[k, k], [k, k]], "constant", constant_values=0)
     width, height = padded_mask.shape
     eroded_mask = np.zeros_like(padded_mask)
@@ -14,6 +17,9 @@ def erode(mask: ArrayLike, k=1) -> ArrayLike:
 
 
 def dilate(mask: ArrayLike, k=1) -> ArrayLike:
+    """
+    Starting from a blank mask, set entry to True if it has at least 1 neighbour (in the provided mask) in 2K+1 surrounding square.
+    """
     padded_mask = np.pad(mask, [[k, k], [k, k]], "constant", constant_values=0)
     width, height = padded_mask.shape
     dilated_mask = np.zeros_like(padded_mask)
@@ -24,9 +30,10 @@ def dilate(mask: ArrayLike, k=1) -> ArrayLike:
     return dilated_mask[k:-k, k:-k]
 
 
-# Set pixel if enough neighbours are set
-# Start from blank canvas
 def repopulate(mask: ArrayLike, n=3, k=1) -> ArrayLike:
+    """
+    Starting from a blank mask, set entry to True if it has at least N neighbours (in the provided mask) in 2K+1 surrounding square.
+    """
     padded_mask = np.pad(mask, [[k, k], [k, k]], "constant", constant_values=0)
     width, height = padded_mask.shape
     repopulated_mask = np.zeros_like(padded_mask)
@@ -37,9 +44,10 @@ def repopulate(mask: ArrayLike, n=3, k=1) -> ArrayLike:
     return repopulated_mask[k:-k, k:-k]
 
 
-# Set pixel if enough neighbours are set
-# Start from existing canvas
 def populate(mask: ArrayLike, n=3, k=1) -> ArrayLike:
+    """
+    Starting from the provided mask, set entry to True if it has at least N neighbours in 2K+1 surrounding square.
+    """
     padded_mask = np.pad(mask, [[k, k], [k, k]], "constant", constant_values=0)
     width, height = padded_mask.shape
     populated_mask = padded_mask.copy()
@@ -48,4 +56,3 @@ def populate(mask: ArrayLike, n=3, k=1) -> ArrayLike:
             if np.count_nonzero(padded_mask[x - k : x + k, y - k : y + k] == True) >= n:
                 populated_mask[x, y] = 1
     return populated_mask[k:-k, k:-k]
-

@@ -6,6 +6,11 @@ from typing import Tuple
 def similar_sizes(
     sizes: ArrayLike, other_sizes: ArrayLike, tolerances: Tuple[float, float]
 ) -> ArrayLike:
+    """
+    Compares sizes of 2 label lists.
+    Returns a boolean matrix of all possible combinations and their match success/failure.
+    If sizes of label pair are within tolerances, entry in the returned matrix is True, False otherwise.
+    """
     minmax = np.repeat(sizes[:, None], 2, axis=1) * np.array(tolerances)
     minmax = minmax.astype(np.int32)
     other_sizes = np.repeat(other_sizes[:, None], sizes.shape[0], axis=1)
@@ -15,20 +20,26 @@ def similar_sizes(
 
 def relative_positions(
     sizes: ArrayLike,
-    centroids: ArrayLike,
-    other_centroids: ArrayLike,
+    cogs: ArrayLike,
+    other_cogs: ArrayLike,
     tolerances: Tuple[Tuple[float, float], Tuple[float, float]],
 ) -> ArrayLike:
-    centroid_count = centroids.shape[0]
-    other_centroid_count = other_centroids.shape[0]
+    """
+    Compares relative position of 2 label lists.
+    Returns a boolean matrix of all possible combinations and their match success/failure.
+    Distance between centers of gravity is scaled down by the square root of sizes for normalization.
+    If distance between label pair fits within the tolerance rectangle, entry in the returned matrix is True, False otherwise.
+    """
+    centroid_count = cogs.shape[0]
+    other_centroid_count = other_cogs.shape[0]
     sqrt_sizes = np.sqrt(sizes)
     minmax = np.repeat(
         np.repeat(sqrt_sizes[:, None, None], 2, axis=1), 2, axis=2
     ) * np.array(tolerances)
     minmax = minmax.astype(np.int32)
-    centroids = np.repeat(centroids[:, None, :], other_centroid_count, axis=1)
-    other_centroids = np.repeat(other_centroids[None, :, :], centroid_count, axis=0)
-    delta = other_centroids - centroids
+    cogs = np.repeat(cogs[:, None, :], other_centroid_count, axis=1)
+    other_cogs = np.repeat(other_cogs[None, :, :], centroid_count, axis=0)
+    delta = other_cogs - cogs
     mask = (delta >= minmax[:, 0, :][:, None, :]) & (
         delta <= minmax[:, 1, :][:, None, :]
     )

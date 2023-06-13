@@ -6,6 +6,9 @@ from typing import Tuple
 
 # Based on https://stackoverflow.com/questions/11144513/cartesian-product-of-x-and-y-array-points-into-single-array-of-2d-points
 def cartesian_product(*arrays, dtype=None):
+    """
+    Creates the cartesian product of multiple arrays.
+    """
     la = len(arrays)
     dtype = dtype or np.find_common_type([a.dtype for a in arrays], [])
     arr = np.empty([len(a) for a in arrays] + [la], dtype=dtype)
@@ -15,13 +18,18 @@ def cartesian_product(*arrays, dtype=None):
 
 
 def coordinate_grid(shape: Tuple[int, int]) -> ArrayLike:
+    """
+    Creates a 2d grid with each cell containing it's own position.
+    """
     grid = cartesian_product(np.arange(shape[0]), np.arange(shape[1]), dtype=np.int32)
     return grid.reshape((shape[0], shape[1], 2))
 
 
-# Connected component labeling
 # Based on https://en.wikipedia.org/wiki/Connected-component_labeling
 def ccl(image: ArrayLike) -> ArrayLike:
+    """
+    Connected component labeling using a two-pass algorithm.
+    """
     width, height = image.shape
 
     # Pad to prevent out of bounds checks
@@ -65,10 +73,16 @@ def ccl(image: ArrayLike) -> ArrayLike:
 
 
 def label_uniques(labels: ArrayLike) -> ArrayLike:
+    """
+    Returns unique (occupied) labels from label mask.
+    """
     return np.unique(labels)[1:]
 
 
 def label_sizes(labels: ArrayLike, label_uniques: ArrayLike) -> ArrayLike:
+    """
+    Calculates the size of each selected label from a label mask.
+    """
     sizes = np.zeros_like(label_uniques)
     for i, label in enumerate(label_uniques):
         sizes[i] = np.count_nonzero(labels == label)
@@ -78,6 +92,9 @@ def label_sizes(labels: ArrayLike, label_uniques: ArrayLike) -> ArrayLike:
 def label_cogs(
     labels: ArrayLike, label_uniques: ArrayLike, label_sizes: ArrayLike
 ) -> ArrayLike:
+    """
+    Calculates the center of gravity of each selected label from a label mask.
+    """
     centroids = np.zeros((label_uniques.shape[0], 2))
     grid = coordinate_grid(labels.shape)
     for i, label in enumerate(label_uniques):
@@ -87,6 +104,9 @@ def label_cogs(
 
 
 def label_matches(label_mask: ArrayLike) -> ArrayLike:
+    """
+    Calculates the index pairs of all True entires in a boolean matrix.
+    """
     grid = coordinate_grid((label_mask.shape[0], label_mask.shape[1]))
     return grid[label_mask, :]
 
@@ -98,6 +118,9 @@ def merge_labels(
     uniques2,
     pairs,
 ):
+    """
+    Combines 2 label masks into a new label mask given index pairs.
+    """
     labels = np.zeros_like(labels1, dtype=np.uint32)
     for i, (label1_idx, label2_idx) in enumerate(pairs):
         label1 = uniques1[label1_idx]
@@ -108,6 +131,9 @@ def merge_labels(
 
 
 def labels_to_aabbs(labels: ArrayLike, labels_unique: ArrayLike) -> ArrayLike:
+    """
+    Extracts AABB for all selected labels from a label mask.
+    """
     aabbs = np.zeros((labels_unique.shape[0], 4), dtype=np.int32)
     grid = coordinate_grid(labels.shape)
     for i, label in enumerate(labels_unique):

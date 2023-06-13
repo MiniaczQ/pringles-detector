@@ -4,6 +4,9 @@ from typing import Tuple
 
 
 def draw_aabbs(image: ArrayLike, aabbs: ArrayLike, color: ArrayLike) -> ArrayLike:
+    """
+    Draws many AABBs onto an image.
+    """
     for x_min, y_min, x_max, y_max in aabbs:
         image[[x_min, x_max], y_min : y_max + 1] = color
         image[x_min : x_max + 1, [y_min, y_max]] = color

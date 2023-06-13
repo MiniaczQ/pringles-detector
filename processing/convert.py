@@ -3,6 +3,9 @@ from numpy.typing import ArrayLike
 
 
 def bgr_to_hsv(image: ArrayLike) -> ArrayLike:
+    """
+    Converts a BGR color space image to HSV color space.
+    """
     hsv_image = np.zeros_like(image)
 
     # General calculations
