@@ -37,11 +37,11 @@ def relative_positions(
         np.repeat(sqrt_sizes[:, None, None], 2, axis=1), 2, axis=2
     ) * np.array(tolerances)
     minmax = minmax.astype(np.int32)
-    cogs = np.repeat(cogs[:, None, :], other_centroid_count, axis=1)
-    other_cogs = np.repeat(other_cogs[None, :, :], centroid_count, axis=0)
+    cogs = np.repeat(cogs[None, :, :], other_centroid_count, axis=0)
+    other_cogs = np.repeat(other_cogs[:, None, :], centroid_count, axis=1)
     delta = other_cogs - cogs
-    mask = (delta >= minmax[:, 0, :][:, None, :]) & (
-        delta <= minmax[:, 1, :][:, None, :]
+    mask = (delta >= minmax[:, 0, :][None, :, :]) & (
+        delta <= minmax[:, 1, :][None, :, :]
     )
     return mask[:, :, 0] & mask[:, :, 1]
 

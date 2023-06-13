@@ -122,7 +122,7 @@ def merge_labels(
     Combines 2 label masks into a new label mask given index pairs.
     """
     labels = np.zeros_like(labels1, dtype=np.uint32)
-    for i, (label1_idx, label2_idx) in enumerate(pairs):
+    for i, (label2_idx, label1_idx) in enumerate(pairs):
         label1 = uniques1[label1_idx]
         label2 = uniques2[label2_idx]
         labels[labels1 == label1] = i + 1
