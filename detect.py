@@ -1,16 +1,19 @@
 import numpy as np
 from numpy.typing import ArrayLike
 from processing.convert import bgr_to_hsv
-from processing.ccl import (
+from processing.labels import (
     ccl,
     label_uniques,
     label_sizes,
-    label_centroids,
+    label_cogs,
     label_matches,
+    merge_labels,
+    labels_to_aabbs,
 )
 from processing.debug import dbg_show_ccl, dbg_show_mask
 from processing.morph import erode, dilate, repopulate, populate
 from processing.compare import similar_sizes, relative_positions
+from processing.aabb import draw_aabbs
 
 
 def process_face(hsv_image: ArrayLike) -> ArrayLike:
@@ -41,42 +44,37 @@ def detect(image: ArrayLike) -> ArrayLike:
     # hair_mask = process_hair(hsv_image)
     text_mask = process_text(hsv_image)
 
-    face_mask_labels = ccl(face_mask)
-    face_mask_uniques = label_uniques(face_mask_labels)
-    face_mask_sizes = label_sizes(face_mask_labels, face_mask_uniques)
-    face_mask_centroids = label_centroids(
-        face_mask_labels, face_mask_uniques, face_mask_sizes
-    )
+    face_labels = ccl(face_mask)
+    face_uniques = label_uniques(face_labels)
+    face_sizes = label_sizes(face_labels, face_uniques)
+    face_cogs = label_cogs(face_labels, face_uniques, face_sizes)
 
     text_mask = dilate(erode(text_mask, 2), 4)
-    text_mask_labels = ccl(text_mask)
-    text_mask_uniques = label_uniques(text_mask_labels)
-    text_mask_sizes = label_sizes(text_mask_labels, text_mask_uniques)
-    text_mask_centroids = label_centroids(
-        text_mask_labels, text_mask_uniques, text_mask_sizes
+    text_labels = ccl(text_mask)
+    text_uniques = label_uniques(text_labels)
+    text_sizes = label_sizes(text_labels, text_uniques)
+    text_cogs = label_cogs(text_labels, text_uniques, text_sizes)
+
+    textface_size_mask = similar_sizes(face_sizes, text_sizes, (0.8, 2))
+    textface_pos_mask = relative_positions(
+        text_sizes,
+        text_cogs,
+        face_cogs,
+        ((-1.7, -0.4), (-0.8, 0.4)),
     )
+    textface_mask = textface_size_mask & textface_pos_mask
+    textface_pairs = label_matches(textface_mask)
 
-    size_label_mask = similar_sizes(face_mask_sizes, text_mask_sizes, (0.8, 2))
-    position_label_mask = relative_positions(
-        text_mask_sizes,
-        text_mask_centroids,
-        face_mask_centroids,
-        ((-1.5, -0.2), (-1, 0.2)),
+    textface_labels = merge_labels(
+        text_labels, text_uniques, face_labels, face_uniques, textface_pairs
     )
-    label_mask = size_label_mask & position_label_mask
-    matches = label_matches(label_mask)
-    matches_mask = np.zeros_like(text_mask, dtype=np.uint32)
-    for i, (text_label_idx, face_label_idx) in enumerate(matches):
-        text_label = text_mask_uniques[text_label_idx]
-        face_label = face_mask_uniques[face_label_idx]
-        matches_mask[text_mask_labels == text_label] = i + 1
-        matches_mask[face_mask_labels == face_label] = i + 1
+    textface_uniques = label_uniques(textface_labels)
 
-    return dbg_show_ccl(matches_mask) * 255
+    # return dbg_show_ccl(textface_mask) * 255
 
-    mask = text_mask  # face_mask | hair_mask | text_mask
+    aabbs = labels_to_aabbs(textface_labels, textface_uniques)
 
-    image[~mask] = 0
+    image = draw_aabbs(image, aabbs, np.array([0, 0, 0]))
 
     return image
 

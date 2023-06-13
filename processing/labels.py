@@ -1,12 +1,13 @@
 import numpy as np
 from numpy.typing import ArrayLike
+import numpy.typing as nt
 from typing import Tuple
 
 
 # Based on https://stackoverflow.com/questions/11144513/cartesian-product-of-x-and-y-array-points-into-single-array-of-2d-points
-def cartesian_product(*arrays):
+def cartesian_product(*arrays, dtype=None):
     la = len(arrays)
-    dtype = np.find_common_type([a.dtype for a in arrays], [])
+    dtype = dtype or np.find_common_type([a.dtype for a in arrays], [])
     arr = np.empty([len(a) for a in arrays] + [la], dtype=dtype)
     for i, a in enumerate(np.ix_(*arrays)):
         arr[..., i] = a
@@ -14,7 +15,7 @@ def cartesian_product(*arrays):
 
 
 def coordinate_grid(shape: Tuple[int, int]) -> ArrayLike:
-    grid = cartesian_product(np.arange(shape[0]), np.arange(shape[1]))
+    grid = cartesian_product(np.arange(shape[0]), np.arange(shape[1]), dtype=np.int32)
     return grid.reshape((shape[0], shape[1], 2))
 
 
@@ -74,7 +75,7 @@ def label_sizes(labels: ArrayLike, label_uniques: ArrayLike) -> ArrayLike:
     return sizes
 
 
-def label_centroids(
+def label_cogs(
     labels: ArrayLike, label_uniques: ArrayLike, label_sizes: ArrayLike
 ) -> ArrayLike:
     centroids = np.zeros((label_uniques.shape[0], 2))
@@ -90,6 +91,33 @@ def label_matches(label_mask: ArrayLike) -> ArrayLike:
     return grid[label_mask, :]
 
 
+def merge_labels(
+    labels1,
+    uniques1,
+    labels2,
+    uniques2,
+    pairs,
+):
+    labels = np.zeros_like(labels1, dtype=np.uint32)
+    for i, (label1_idx, label2_idx) in enumerate(pairs):
+        label1 = uniques1[label1_idx]
+        label2 = uniques2[label2_idx]
+        labels[labels1 == label1] = i + 1
+        labels[labels2 == label2] = i + 1
+    return labels
+
+
+def labels_to_aabbs(labels: ArrayLike, labels_unique: ArrayLike) -> ArrayLike:
+    aabbs = np.zeros((labels_unique.shape[0], 4), dtype=np.int32)
+    grid = coordinate_grid(labels.shape)
+    for i, label in enumerate(labels_unique):
+        label_grid = grid[labels == label]
+        xy_min = label_grid.min(axis=0)
+        xy_max = label_grid.max(axis=0)
+        aabbs[i] = np.concatenate([xy_min, xy_max], axis=0)
+    return aabbs
+
+
 if __name__ == "__main__":
     image = np.array(
         [
@@ -100,11 +128,13 @@ if __name__ == "__main__":
         ]
     )
 
-    ccled = ccl(image)
-    print(ccled)
-    unique = label_uniques(ccled)
+    labels = ccl(image)
+    print(labels)
+    unique = label_uniques(labels)
     print(unique)
-    sizes = label_sizes(ccled, unique)
+    sizes = label_sizes(labels, unique)
     print(sizes)
-    centroids = label_centroids(ccled, unique, sizes)
+    centroids = label_cogs(labels, unique, sizes)
     print(centroids)
+    aabbs = labels_to_aabbs(labels, unique)
+    print(aabbs)
