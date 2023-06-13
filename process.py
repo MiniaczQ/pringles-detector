@@ -14,8 +14,12 @@ def process_one(source: Path, destination: Path) -> Path:
     assert not destination.exists()
 
     image = imread(str(source))
-    image = detect(image)
-    imwrite(str(destination), image)
+    images = detect(image)
+    for i, image in enumerate(images):
+        if i == 0:
+            imwrite(str(destination), image)
+        else:
+            imwrite(f"{destination.parent}/{destination.stem}-{i}.png", image)
 
     return destination
 
